@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkyGuard | Aerial Rescue Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#"><span class="brand-mark">S</span><span>SKY<span class="brand-light">GUARD</span><small>RESCUE INTELLIGENCE</small></span></a>
+    <div class="side-label">WORKSPACE</div>
+    <a class="nav-item active" href="#overview"><span>▦</span> Mission overview</a>
+    <a class="nav-item" href="#analysis"><span>⌁</span> Image analysis</a>
+    <a class="nav-item" href="#mapping"><span>◎</span> Geo overview</a>
+    <div class="sidebar-bottom">
+      <div class="system-card"><span class="pulse"></span><div><b>LOCAL AI ENGINE</b><small id="engine-status">Checking model…</small></div></div>
+      <div class="sidebar-note">PROTOTYPE BUILD <span>v2.1</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><div class="eyebrow">SEARCH & RESCUE / COMMAND</div><h1>Mission overview</h1></div>
+      <div class="top-actions"><span class="live-pill"><i></i> SYSTEM READY</span><span class="avatar">SG</span></div>
+    </header>
+
+    <section class="hero" id="overview">
+      <div class="hero-copy"><div class="eyebrow light">AERIAL INTELLIGENCE PLATFORM</div><h2>See further.<br><em>Respond faster.</em></h2><p>Analyse aerial imagery, review AI-assisted person and thermal detections, and organise evidence by mission.</p><a href="#analysis" class="hero-link">START A MISSION <span>↗</span></a></div>
+      <div class="hero-art"><div class="radar radar-one"></div><div class="radar radar-two"></div><div class="radar-core">⌖</div><div class="coord coord-a">FIELD SCAN / 01</div><div class="coord coord-b">AI VISION ACTIVE</div><div class="crosshair"></div></div>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card"><div class="stat-top"><span>MISSIONS LOGGED</span><b>↗</b></div><strong id="stat-missions">—</strong><small>Saved mission records</small></article>
+      <article class="stat-card"><div class="stat-top"><span>IMAGES ANALYSED</span><b>▧</b></div><strong id="stat-images">—</strong><small>Across saved missions</small></article>
+      <article class="stat-card"><div class="stat-top"><span>DETECTIONS</span><b>⌖</b></div><strong id="stat-detections">—</strong><small>Person + thermal · require human verification</small></article>
+      <article class="stat-card accent-stat"><div class="stat-top"><span>GEO-TAGGED IMAGES</span><b>◎</b></div><strong id="stat-geotagged">—</strong><small>Camera EXIF coordinates found</small></article>
+    </section>
+
+    <section class="workspace-grid" id="analysis">
+      <article class="panel upload-panel">
+        <div class="panel-heading"><div><div class="eyebrow">MISSION WORKFLOW / 01</div><h3>New image analysis</h3></div><span class="step-tag">INPUT</span></div>
+        <form id="mission-form">
+          <label class="field-label" for="mission-name">MISSION NAME</label>
+          <input id="mission-name" name="mission_name" class="text-input" maxlength="100" placeholder="e.g. North Ridge Search – Sector A">
+          <label class="field-label">AERIAL IMAGERY <span>UP TO 20 FILES / 40 MB TOTAL</span></label>
+          <label class="dropzone" id="dropzone" for="images">
+            <input id="images" name="images" type="file" accept=".jpg,.jpeg,.png,.webp" multiple hidden>
+            <span class="upload-icon">＋</span><b>Drop images here or <u>browse files</u></b><small>JPG, PNG or WEBP · Drone or aerial photographs (visible or thermal)</small>
+            <span id="file-list" class="file-list">No images selected</span>
+          </label>
+
+          <label class="field-label" for="mode">DETECTION MODE</label>
+          <select id="mode" name="mode" class="text-input">
+            <option value="visible">Visible (RGB) · person detection</option>
+            <option value="thermal">Thermal · heat hotspots</option>
+            <option value="both">Both · person + thermal</option>
+          </select>
+
+          <div id="thermal-options" class="hidden">
+            <label class="field-label" for="palette">THERMAL PALETTE</label>
+            <select id="palette" name="palette" class="text-input">
+              <option value="whitehot">White-hot (bright = hot)</option>
+              <option value="ironbow">Ironbow (bright = hot)</option>
+              <option value="blackhot">Black-hot (dark = hot)</option>
+            </select>
+            <div class="threshold-row">
+              <label class="field-label" for="heat-percentile">HEAT STRICTNESS <b id="heat-percentile-value">98</b></label>
+              <input id="heat-percentile" name="heat_percentile" type="range" min="90" max="99.5" step="0.5" value="98">
+              <div class="range-hints"><span>Lower · more hotspots, more false positives</span><span>Higher · only the hottest spots</span></div>
+            </div>
+          </div>
+
+          <div class="threshold-row" id="confidence-row"><label class="field-label" for="confidence">DETECTION SENSITIVITY <b id="confidence-value">15%</b></label><input id="confidence" type="range" min="5" max="90" value="15" step="5"><div class="range-hints"><span>More detections · review more false positives</span><span>Higher confidence</span></div></div>
+          <button class="primary-btn" id="analyse-btn" type="submit"><span>RUN AI ANALYSIS</span><b>→</b></button>
+          <div id="progress" class="progress hidden"><span class="spinner"></span><span>Analysing imagery…</span></div>
+          <div id="form-error" class="error-message hidden"></div>
+        </form>
+      </article>
+
+      <article class="panel results-panel">
+        <div class="panel-heading"><div><div class="eyebrow">MISSION WORKFLOW / 02</div><h3>Latest analysis</h3></div><span class="step-tag">OUTPUT</span></div>
+        <div id="empty-state" class="empty-state"><div class="empty-visual">⌁</div><b>Awaiting mission data</b><p>Upload aerial imagery to generate annotated detections and review notes.</p></div>
+        <div id="results-content" class="hidden">
+          <div class="result-summary"><div><small>DETECTIONS</small><strong id="result-count">0</strong></div><div><small>IMAGES PROCESSED</small><strong id="result-images">0</strong></div><div><small>MISSION STATUS</small><strong class="status-complete">COMPLETE</strong></div></div>
+          
+        
+      <!-- RESCUE PRIORITY DASHBOARD -->
+      <div class="priority-dashboard">
+
+      <div class="priority-dashboard-header">
+        <div>
+            <small>AI DETECTION INTELLIGENCE</small>
+            <h3>Rescue Priority Overview</h3>
+        </div>
+        <span class="priority-live-status">
+            ● LIVE ANALYSIS
+        </span>
+      </div>
+
+      <div class="priority-stats-grid">
+
+        <button class="priority-stat-card high-card"
+                data-priority-filter="HIGH" type="button">
+            <span class="priority-stat-label">HIGH PRIORITY</span>
+            <strong id="priority-high-count">0</strong>
+            <small>Confidence ≥ 80%</small>
+            <span class="priority-card-hint">Click to filter →</span>
+        </button>
+
+        <button class="priority-stat-card medium-card"
+                data-priority-filter="MEDIUM" type="button">
+            <span class="priority-stat-label">MEDIUM PRIORITY</span>
+            <strong id="priority-medium-count">0</strong>
+            <small>Confidence 50–79.9%</small>
+            <span class="priority-card-hint">Click to filter →</span>
+        </button>
+
+        <button class="priority-stat-card low-card"
+                data-priority-filter="LOW" type="button">
+            <span class="priority-stat-label">LOW PRIORITY</span>
+            <strong id="priority-low-count">0</strong>
+            <small>Confidence below 50%</small>
+            <span class="priority-card-hint">Click to filter →</span>
+        </button>
+
+      </div>
+
+      <div class="priority-distribution">
+        <div class="distribution-header">
+            <strong>Confidence Distribution</strong>
+            <span id="priority-total-count">0 detections</span>
+        </div>
+
+        <div class="distribution-bar">
+            <div id="high-distribution" class="distribution-high"></div>
+            <div id="medium-distribution" class="distribution-medium"></div>
+            <div id="low-distribution" class="distribution-low"></div>
+        </div>
+
+        <div class="distribution-legend">
+            <span>● High</span>
+            <span>● Medium</span>
+            <span>● Low</span>
+        </div>
+        </div>
+
+        <button type="button" class="priority-reset"
+          data-priority-filter="ALL">
+          SHOW ALL DETECTIONS ↗
+        </button>
+
+        </div>
+        <!-- END RESCUE PRIORITY DASHBOARD -->
+
+
+          <div id="result-tabs" class="result-tabs"></div>
+          <div class="annotated-wrap"><img id="annotated-image" alt="Annotated aerial image"></div>
+          <div id="observations" class="observations"></div>
+          <div class="review-section">
+            <div class="review-heading">
+              <h4>HUMAN VERIFICATION</h4>
+              <span>REVIEW EACH DETECTION</span>
+            </div>
+            <div id="review-list" class="review-list"></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="lower-grid" id="mapping">
+      <article class="panel map-panel">
+        <div class="panel-heading"><div><div class="eyebrow">SPATIAL INTELLIGENCE / 03</div><h3>Geo overview</h3></div><span class="map-legend"><i></i> CAMERA GPS</span></div>
+        <div id="map"></div>
+        <div class="map-disclaimer">Map pins show image camera GPS metadata only—not the detected person's location. Images without GPS appear in the mission review list.</div>
+      </article>
+      <article class="panel history-panel">
+        <div class="panel-heading"><div><div class="eyebrow">OPERATIONS LOG</div><h3>Recent missions</h3></div><button class="text-btn" id="refresh-history">REFRESH ↻</button></div>
+        <div id="mission-history" class="history-list"><div class="history-empty">No saved missions yet.</div></div>
+      </article>
+    </section>
+    <footer>SKYGUARD IS A HACKATHON PROTOTYPE · AI OUTPUT IS ADVISORY ONLY · HUMAN VERIFICATION REQUIRED</footer>
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body></html>
